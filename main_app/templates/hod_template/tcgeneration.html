@@ -1,0 +1,100 @@
+{% extends 'main_app/base.html' %}
+{% load static %}
+{% block page_title %}{{ page_title }}{% endblock page_title %}
+{% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">{{ page_title }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <table id="example2" class="table table-bordered table-hover">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Gender</th>
+                                    <th>Course</th>
+                                    <th>Avatar</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ student.last_name }}, {{ student.first_name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>{{ student.gender }}</td>
+                                    <td>{{student.student.course.name}}</td>
+                                    <td>
+                                        {% if student.profile_pic %}
+                                            <img class="img img-fluid mb-2" height="56" width="56" src="{{ student.profile_pic }}" alt="Profile Picture">
+                                        {% else %}
+                                            No Image
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'edit_student' student.student.id %}" class="btn btn-info">Edit</a>
+                                        <a href="{% url 'delete_student' student.student.id %}" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+                                        <a  class="btn btn-secondary mt-2 " style="color: white;" onclick="generateTC('{{ student.first_name|safe }} {{ student.last_name|safe }}', '{{ student.course.name|safe }}')">Generate TC</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<div id="tcContent" style="background-color: white; color: black; padding: 20px; display: none;">
+    <h1>Transfer Certificate</h1>
+    <p id="name">Name: {{ student.first_name }}</p>
+    <p id="date">Date: {% now 'd.m.Y'  %}</p>
+    <p id="institution">Institution: </p>
+</div>
+
+
+<script>
+    function generateTC(name, course) {
+        // Update the content for the PDF
+        const tcContent = document.getElementById('tcContent');
+        document.getElementById('name').textContent = `Name: ${name}`;
+        document.getElementById('institution').textContent = `Institution: ${course}`;
+        tcContent.style.display = 'block'; // Make the content visible for capture
+
+        // Use html2canvas to capture the content and generate a PDF
+        html2canvas(tcContent, {
+        scrollY: -window.scrollY}).then(canvas => {
+            tcContent.style.display = 'none'; // Hide the content again after capturing
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jspdf.jsPDF();
+            pdf.addImage(imgData, 'PNG', 10, 10, 240, 100); // Add the captured image to the PDF
+
+            // Create a Blob from the PDF and initiate download
+            const pdfBlob = pdf.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const pdfLink = document.createElement('a');
+            pdfLink.href = url;
+            pdfLink.download = `${name}-TransferCertificate.pdf`;
+            document.body.appendChild(pdfLink);
+            pdfLink.click();
+            document.body.removeChild(pdfLink); // Clean up by removing the temporary link
+        }).catch(err => {
+            console.error('Error generating PDF:', err);
+        });
+    }
+</script>
+ 
+
+{% endblock content %}
+

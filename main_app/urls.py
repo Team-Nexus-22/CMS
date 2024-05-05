@@ -86,6 +86,9 @@ urlpatterns = [
      path("staff/addbook/", staff_views.add_book, name="add_book"),
     path("staff/issue_book/", staff_views.issue_book, name="issue_book"),
     path("staff/view_issued_book/", staff_views.view_issued_book, name="view_issued_book"),
+     
+    path('save_attendance/', staff_views.save_attendance, name='save_attendance'),
+
 
 
 

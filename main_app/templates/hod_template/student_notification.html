@@ -3,14 +3,13 @@
 {% block page_title %}{{page_title}}{% endblock page_title %}
 
 {% block content %}
-
 <section class="content">
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">{{page_title}}</h3>
+                        <h3 class="card-title">{{ page_title }}</h3>
                     </div>
                     <!-- /.card-header -->
                     <div class="card-body">
@@ -30,19 +29,19 @@
                                 {% for student in students %}
                                 <tr>
                                     <td>{{ forloop.counter }}</td>
-                                    <td>{{student.last_name}}, {{student.first_name}}</td>
-                                    <td>{{student.email}}</td>
-                                    <td>{{student.gender}}</td>
-                                    <td>{{student.student.course.name}}</td>
+                                    <td>{{ student.last_name }}, {{ student.first_name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>{{ student.gender }}</td>
+                                    <td>{{ student.student.course.name }}</td>
                                     <td>
-                                        {% if student.profile_pic == ""  %}
-                                        No Image
+                                        {% if student.profile_pic %}
+                                        <img class="img img-fluid mb-2" height="56" width="56" src="{{ student.profile_pic.url }}" alt="">
                                         {% else %}
-                                        <img class="img img-fluid mb-2" height="56" width="56"
-                                            src="{{student.profile_pic}}" alt="">
+                                        No Image
                                         {% endif %}
                                     </td>
-                                    <td><button data-toggle = "modal" data-target = "#myModal"class="btn btn-primary show_notification" value="{{student.id}}">Send Notification</button> 
+                                    <td>
+                                        <button data-toggle="modal" data-target="#myModal" class="btn btn-primary show_notification" value="{{ student.id }}">Send Notification</button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -54,76 +53,65 @@
         </div>
     </div>
 </section>
-<div class = "modal fade" id = "myModal" tabindex = "-1" role = "dialog" 
-   aria-labelledby = "myModalLabel" aria-hidden = "true">
-   
-   <div class = "modal-dialog">
-      <div class = "modal-content">
-         
-         <div class = "modal-header">Send Notification
-            <button type = "button" class = "close" data-dismiss = "modal" aria-hidden = "true">
-                  &times;
-            </button>
-            
-           
-         </div>
-         
-         <div class = "modal-body">
-            <div class="form-group">
-                <input type="text" id="message" class='form-control'>
-                <input type="hidden"  id="student_id" class='form-control'>
+
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">Send Notification
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
             </div>
-         </div>
-         
-         <div class = "modal-footer">
-            <button type = "button" class = "btn btn-danger" data-dismiss = "modal">
-               Close
-            </button>
-            
-            <button type = "button" id='send' class = "btn btn-success send_notification">
-               Send Notification
-            </button>
-         </div>
-         
-      </div><!-- /.modal-content -->
-   </div><!-- /.modal-dialog -->
-  
-</div><!-- /.modal -->
-{% endblock content %}
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" id="message" class='form-control'>
+                    <input type="hidden" id="student_id" class='form-control'>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success send_notification">Send Notification</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block custom_js %}
-  <script>
-      $(".show_notification").click(function(){
-          $("#student_id").val($(this).val())
-      })
-      $(".send_notification").click(function(){
-          var id = $("#student_id").val()
-          var message = $("#message").val()
-          sendNotification(id,message);
-      })
-    function sendNotification(id,message){
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+$(document).ready(function() {
+    $(".show_notification").click(function() {
+        $("#student_id").val($(this).val());
+    });
+
+    $(".send_notification").click(function() {
+        var id = $("#student_id").val();
+        var message = $("#message").val();
+        sendNotification(id, message);
+    });
+
+    function sendNotification(id, message) {
         $.ajax({
             url: "{% url 'send_student_notification' %}",
             type: 'POST',
             data: {
                 id: id,
-                message:message
+                message: message,
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert("Notification Sent");
+                    location.reload();
+                } else {
+                    alert("Notification could not be saved. Please try again.");
+                }
+            },
+            error: function(response) {
+                alert("Error in sending notification");
             }
-        }).done(function (response) {
-           
-                
-            if (response == 'True'){
-                alert("Notification Sent");
-                location.reload();
-              }else{
-                alert("Notification could not be saved. Please try again.");
-              }
-               
-           
-        }).fail(function (response) {
-            alert("Error in saving token")
-        })
-
+        });
     }
-
-  </script>
-{% endblock custom_js %}
+});
+</script>
+{% endblock %}

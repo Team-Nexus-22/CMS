@@ -1,3 +1,4 @@
+from gettext import translation
 import json
 
 from django.contrib import messages
@@ -6,11 +7,16 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import (HttpResponseRedirect, get_object_or_404,redirect, render)
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+import os
 
 from .forms import *
 from .models import *
 from . import forms, models
 from datetime import date
+from docx import Document
+import json
+from django.conf import settings
+
 
 def staff_home(request):
     staff = get_object_or_404(Staff, admin=request.user)
@@ -73,27 +79,38 @@ def get_students(request):
 
 
 @csrf_exempt
-def save_attendance(request):
-    student_data = request.POST.get('student_ids')
-    date = request.POST.get('date')
-    subject_id = request.POST.get('subject')
-    session_id = request.POST.get('session')
-    students = json.loads(student_data)
-    try:
-        session = get_object_or_404(Session, id=session_id)
-        subject = get_object_or_404(Subject, id=subject_id)
-        attendance = Attendance(session=session, subject=subject, date=date)
-        attendance.save()
+def update_attendance(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            attendance_date = data['date']
+            student_ids = data['student_ids']
 
-        for student_dict in students:
-            student = get_object_or_404(Student, id=student_dict.get('id'))
-            attendance_report = AttendanceReport(student=student, attendance=attendance, status=student_dict.get('status'))
-            attendance_report.save()
-    except Exception as e:
-        return None
+            # Create and configure a Word document
+            doc = Document()
+            doc.add_heading('Attendance Report for ' + attendance_date, level=1)
 
-    return HttpResponse("OK")
+            table = doc.add_table(rows=1, cols=3)
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Student ID'
+            hdr_cells[1].text = 'Status'
+            hdr_cells[2].text = 'Remarks'
 
+            for student in student_ids:
+                row_cells = table.add_row().cells
+                row_cells[0].text = str(student['id'])
+                row_cells[1].text = 'Present' if student['status'] else 'Absent'
+                row_cells[2].text = 'N/A'  # Example placeholder
+
+            # Save the document
+            file_path = 'path_to_your_documents_directory/Attendance_' + attendance_date.replace('/', '_') + '.docx'
+            doc.save(file_path)
+
+            return HttpResponse('OK')
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    else:
+        return HttpResponse('Invalid request', status=400)
 
 def staff_update_attendance(request):
     staff = get_object_or_404(Staff, admin=request.user)
@@ -104,8 +121,36 @@ def staff_update_attendance(request):
         'sessions': sessions,
         'page_title': 'Update Attendance'
     }
-
     return render(request, 'staff_template/staff_update_attendance.html', context)
+def save_attendance(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            attendance_date = data.get('date')
+            students_data = data.get('students', [])
+            download_directory = os.path.expanduser('/Downloads')  # For Unix-like systems
+
+
+            directory = os.path.join(download_directory, 'saved_files', 'attendance_files')
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            file_path = os.path.join(directory, f'{attendance_date}.doc')
+
+            with open(file_path, 'w') as file:
+                for student_data in students_data:
+                    student = CustomUser.objects.get(id=student_data['id'])
+                    status = 'Present' if student_data['status'] == 1 else 'Absent'
+                    file.write(f"Date: {attendance_date}, Name: {student.first_name}, Status: {status}\n")
+
+            return JsonResponse({"message": "Attendance saved successfully"}, status=200)
+
+        except CustomUser.DoesNotExist:
+            return JsonResponse({"error": "One or more students not found."}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    else:
+        return JsonResponse({"error": "Invalid HTTP method."}, status=405)
 
 
 @csrf_exempt

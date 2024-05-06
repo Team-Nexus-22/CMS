@@ -79,6 +79,28 @@ def get_students(request):
 
 
 @csrf_exempt
+
+def save_attendance(request):
+    student_data = request.POST.get('student_ids')
+    date = request.POST.get('date')
+    subject_id = request.POST.get('subject')
+    session_id = request.POST.get('session')
+    students = json.loads(student_data)
+    try:
+        session = get_object_or_404(Session, id=session_id)
+        subject = get_object_or_404(Subject, id=subject_id)
+        attendance = Attendance(session=session, subject=subject, date=date)
+        attendance.save()
+
+        for student_dict in students:
+            student = get_object_or_404(Student, id=student_dict.get('id'))
+            attendance_report = AttendanceReport(student=student, attendance=attendance, status=student_dict.get('status'))
+            attendance_report.save()
+    except Exception as e:
+        return None
+
+    return HttpResponse("OK")
+
 def update_attendance(request):
     if request.method == 'POST':
         try:
@@ -122,7 +144,7 @@ def staff_update_attendance(request):
         'page_title': 'Update Attendance'
     }
     return render(request, 'staff_template/staff_update_attendance.html', context)
-def save_attendance(request):
+def save_attendance2(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)

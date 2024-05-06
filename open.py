@@ -11,6 +11,7 @@ def open_cms():
 # Create main window
 root = tk.Tk()
 root.title("NEXUS")
+root.geometry('400x300') 
 
 # Add heading
 heading = tk.Label(root, text="NEXUS", font=("Arial", 18))

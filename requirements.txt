@@ -7,3 +7,4 @@ whitenoise==5.2.0
 Pillow
 python-docx
 requests
+pywin32==306

@@ -5,6 +5,8 @@ import os
 def open_cms():
     python_file = os.path.join(os.path.dirname(__file__), "nexus.py")
     subprocess.Popen(["python", python_file])
+    # Close the Tkinter window
+    root.destroy()
 
 # Create main window
 root = tk.Tk()
